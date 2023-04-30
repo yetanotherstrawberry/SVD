@@ -95,13 +95,13 @@ internal class ImageViewModel : BindableBase
             {
                 for (int j = 0; j < tinted.PixelWidth * bytesPerPixel; j++)
                 {
-                    if(j != 0 && j % 3 == 0)
-                    {
-                        tintedImage[j + i * stride] = byte.MaxValue;
-                        continue;
-                    }
                     tintedImage[j + i * stride] = (byte)~originalImage[j + i * stride];
                 }
+            }
+
+            for(int i = 3; i < tintedImage.Length; i += 4)
+            {
+                tintedImage[i] = byte.MaxValue;
             }
 
             tinted.WritePixels(rect, tintedImage, stride, 0);
