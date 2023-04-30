@@ -82,7 +82,30 @@ internal class ImageViewModel : BindableBase
         }, canOperateOnImg);
         var compressComm = new DelegateCommand(() =>
         {
+            var tinted = new WriteableBitmap(CurrentImageSource!.PixelWidth, CurrentImageSource.PixelHeight, CurrentImageSource.DpiX, CurrentImageSource.DpiY, CurrentImageSource.Format, CurrentImageSource.Palette);
+            var rect = new Int32Rect(0, 0, CurrentImageSource.PixelWidth, CurrentImageSource.PixelHeight);
+            int bytesPerPixel = (tinted.Format.BitsPerPixel + 7) / 8;
+            int stride = tinted.PixelWidth * bytesPerPixel;
+            int arrayLength = stride * tinted.PixelHeight;
+            byte[] tintedImage = new byte[arrayLength];
+            byte[] originalImage = new byte[arrayLength];
+            CurrentImageSource.CopyPixels(originalImage, stride, 0);
 
+            for (int i = 0; i < tinted.PixelHeight; i++)
+            {
+                for (int j = 0; j < tinted.PixelWidth * bytesPerPixel; j++)
+                {
+                    if(j != 0 && j % 3 == 0)
+                    {
+                        tintedImage[j + i * stride] = byte.MaxValue;
+                        continue;
+                    }
+                    tintedImage[j + i * stride] = (byte)~originalImage[j + i * stride];
+                }
+            }
+
+            tinted.WritePixels(rect, tintedImage, stride, 0);
+            CurrentImageSource = tinted;
         }, canOperateOnImg);
         SaveImageComm = saveImageComm;
         CompressComm = compressComm;
