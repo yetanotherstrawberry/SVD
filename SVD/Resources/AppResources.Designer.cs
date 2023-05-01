@@ -70,11 +70,47 @@ namespace SVD.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Compress image.
+        /// </summary>
+        public static string COMPRESS {
+            get {
+                return ResourceManager.GetString("COMPRESS", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Images.
         /// </summary>
         public static string IMAGES {
             get {
                 return ResourceManager.GetString("IMAGES", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Load image.
+        /// </summary>
+        public static string LOAD_IMAGE {
+            get {
+                return ResourceManager.GetString("LOAD_IMAGE", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SVD Image Compressor.
+        /// </summary>
+        public static string PROGRAM_TITLE {
+            get {
+                return ResourceManager.GetString("PROGRAM_TITLE", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Save image.
+        /// </summary>
+        public static string SAVE_IMAGE {
+            get {
+                return ResourceManager.GetString("SAVE_IMAGE", resourceCulture);
             }
         }
     }

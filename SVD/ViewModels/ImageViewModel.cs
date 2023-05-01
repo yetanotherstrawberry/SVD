@@ -1,8 +1,10 @@
-﻿using Microsoft.Win32;
+﻿using MathNet.Numerics.LinearAlgebra;
+using Microsoft.Win32;
 using Prism.Commands;
 using Prism.Mvvm;
 using SVD.Helpers;
 using SVD.Resources;
+using System;
 using System.ComponentModel;
 using System.Drawing;
 using System.Windows;
@@ -30,7 +32,43 @@ internal class ImageViewModel : BindableBase
     public ICommand CompressComm { get; }
 
     /// <summary>
-    /// Field for <c>Image</c>.
+    /// Field for <c>Ratio</c>.
+    /// </summary>
+    private int ratio = 100;
+
+    /// <summary>
+    /// Compression (clamped between 1 and 100 inclusive) ratio set by the user. Notifies when value changed.
+    /// </summary>
+    public int Ratio
+    {
+        get => ratio;
+        set
+        {
+            ratio = Math.Clamp(value, 1, 100);
+            RaisePropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Field for <c>SliderEnabled</c>.
+    /// </summary>
+    private bool sliderEnabled = false;
+
+    /// <summary>
+    /// Controls whether user can change the value of <c>Ratio</c>. Notifies when value changed.
+    /// </summary>
+    public bool SliderEnabled
+    {
+        get => sliderEnabled;
+        set
+        {
+            sliderEnabled = value;
+            RaisePropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Field for <c>CurrentImageSource</c>.
     /// </summary>
     private BitmapSource? currentImageSource = null;
 
@@ -57,6 +95,35 @@ internal class ImageViewModel : BindableBase
     /// </summary>
     public Window? Owner { get; set; } = null;
 
+    /// <summary>
+    /// Performs image compression.
+    /// </summary>
+    private void CompressImage()
+    {
+        var bytes = CurrentImageSource!.ToByteArray();
+
+        CurrentImageSource = ImageSrcHelper.FromByteArray(
+            bytes,
+            CurrentImageSource!.PixelWidth,
+            CurrentImageSource.PixelHeight,
+            CurrentImageSource.DpiX,
+            CurrentImageSource.DpiY,
+            CurrentImageSource.Format,
+            CurrentImageSource.Palette);
+        var matrix = new double[,]
+        {
+                {1,0,0,0,2,},
+                {0,0,3,0,0,},
+                {0,0,0,0,0,},
+                {0,2,0,0,0,},
+        };
+        var mat = Matrix<double>.Build.DenseOfArray(matrix);
+        var svd = mat.Svd();
+        var ret = svd.U * svd.W * svd.VT;
+        (var r, var g, var b, var a) = CurrentImageSource.To2DRGBAArrays();
+        Console.WriteLine();
+    }
+
     public ImageViewModel() : base()
     {
         LoadImageComm = new DelegateCommand(() =>
@@ -78,35 +145,20 @@ internal class ImageViewModel : BindableBase
         var canOperateOnImg = () => CurrentImageSource != null;
         var saveImageComm = new DelegateCommand(() =>
         {
-
-        }, canOperateOnImg);
-        var compressComm = new DelegateCommand(() =>
-        {
-            var tinted = new WriteableBitmap(CurrentImageSource!.PixelWidth, CurrentImageSource.PixelHeight, CurrentImageSource.DpiX, CurrentImageSource.DpiY, CurrentImageSource.Format, CurrentImageSource.Palette);
-            var rect = new Int32Rect(0, 0, CurrentImageSource.PixelWidth, CurrentImageSource.PixelHeight);
-            int bytesPerPixel = (tinted.Format.BitsPerPixel + 7) / 8;
-            int stride = tinted.PixelWidth * bytesPerPixel;
-            int arrayLength = stride * tinted.PixelHeight;
-            byte[] tintedImage = new byte[arrayLength];
-            byte[] originalImage = new byte[arrayLength];
-            CurrentImageSource.CopyPixels(originalImage, stride, 0);
-
-            for (int i = 0; i < tinted.PixelHeight; i++)
+            SaveFileDialog sfd = new()
             {
-                for (int j = 0; j < tinted.PixelWidth * bytesPerPixel; j++)
-                {
-                    tintedImage[j + i * stride] = (byte)~originalImage[j + i * stride];
-                }
-            }
+                Filter = $"{AppResources.IMAGES}|*.BMP;*.JPG;*.GIF,*.TIFF,*.PNG,*.EXIF|{AppResources.ALL_FILES}|*.*",
+                FilterIndex = 0,
+            };
 
-            for(int i = 3; i < tintedImage.Length; i += 4)
+            if (sfd.ShowDialog(Owner) ?? false)
             {
-                tintedImage[i] = byte.MaxValue;
+                var stream = sfd.OpenFile();
+                stream.Write(CurrentImageSource!.ToByteArray());
+                stream.Close();
             }
-
-            tinted.WritePixels(rect, tintedImage, stride, 0);
-            CurrentImageSource = tinted;
         }, canOperateOnImg);
+        var compressComm = new DelegateCommand(CompressImage, canOperateOnImg);
         SaveImageComm = saveImageComm;
         CompressComm = compressComm;
 
@@ -116,6 +168,7 @@ internal class ImageViewModel : BindableBase
             {
                 saveImageComm.RaiseCanExecuteChanged();
                 compressComm.RaiseCanExecuteChanged();
+                SliderEnabled = canOperateOnImg();
             }
         };
         PropertyChanged += ImageChangedHandler;

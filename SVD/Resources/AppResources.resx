@@ -120,7 +120,19 @@
   <data name="ALL_FILES" xml:space="preserve">
     <value>All files</value>
   </data>
+  <data name="COMPRESS" xml:space="preserve">
+    <value>Compress image</value>
+  </data>
   <data name="IMAGES" xml:space="preserve">
     <value>Images</value>
+  </data>
+  <data name="LOAD_IMAGE" xml:space="preserve">
+    <value>Load image</value>
+  </data>
+  <data name="PROGRAM_TITLE" xml:space="preserve">
+    <value>SVD Image Compressor</value>
+  </data>
+  <data name="SAVE_IMAGE" xml:space="preserve">
+    <value>Save image</value>
   </data>
 </root>
