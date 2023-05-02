@@ -179,6 +179,27 @@ internal class ImageViewModel : BindableBase
             await tasksCompose.gComp;
             await tasksCompose.bComp;
             await tasksCompose.aComp;
+
+            var rgbaResult = (tasksCompose.rComp.Result, tasksCompose.gComp.Result, tasksCompose.bComp.Result, tasksCompose.aComp.Result);
+            /*
+            // TEST: INVERT IMAGE
+            static void test(byte[,] bytes)
+            {
+                for(int i = 0; i < bytes.GetLength(0); i++)
+                {
+                    for(int j = 0;  j < bytes.GetLength(1); j++)
+                    {
+                        bytes[i,j] = (byte)~bytes[i,j];
+                    }
+                }
+            }
+            test(rgbaResult.Item1);
+            test(rgbaResult.Item2);
+            test(rgbaResult.Item3);
+            // /TEST
+            */
+            var retBytes = ImageSrcHelper.RGBAArraysToByte(rgbaResult);
+            SetNewImageSource(retBytes);
         }
         finally
         {

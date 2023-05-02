@@ -32,7 +32,7 @@ internal static partial class ImageSrcHelper
 
     private static int GetStride(BitmapSource bitmapSrc)
     {
-        return bitmapSrc.PixelWidth * (bitmapSrc.Format.BitsPerPixel + 7) / 8;
+        return bitmapSrc.PixelWidth * ((bitmapSrc.Format.BitsPerPixel + 7) / 8);
     }
 
     public static byte[] ToByteArray(this BitmapSource bitmapSrc)
@@ -56,14 +56,38 @@ internal static partial class ImageSrcHelper
         {
             Parallel.For(0, pixelWidth, j =>
             {
-                retB[i, j] = data[i * pixelHeight + j * 4];
-                retG[i, j] = data[i * pixelHeight + j * 4 + 1];
-                retR[i, j] = data[i * pixelHeight + j * 4 + 2];
-                retA[i, j] = data[i * pixelHeight + j * 4 + 3];
+                retB[i, j] = data[i * pixelWidth * 4 + j * 4];
+                retG[i, j] = data[i * pixelWidth * 4 + j * 4 + 1];
+                retR[i, j] = data[i * pixelWidth * 4 + j * 4 + 2];
+                retA[i, j] = data[i * pixelWidth * 4 + j * 4 + 3];
             });
         });
 
         return (retR, retG, retB, retA);
+    }
+
+    public static byte[] RGBAArraysToByte((byte[,], byte[,], byte[,], byte[,]) input)
+    {
+        var ret = new byte[input.Item1.Length * 4];
+        var rows = input.Item1.GetLength(0);
+        var cols = input.Item1.GetLength(1);
+        var retB = input.Item3;
+        var retA = input.Item4;
+        var retR = input.Item1;
+        var retG = input.Item2;
+
+        Parallel.For(0, rows, i =>
+        {
+            Parallel.For(0, cols, j =>
+            {
+                ret[i * cols * 4 + j * 4] = retB[i, j];
+                ret[i * cols * 4 + j * 4 + 1] = retG[i, j];
+                ret[i * cols * 4 + j * 4 + 2] = retR[i, j];
+                ret[i * cols * 4 + j * 4 + 3] = retA[i, j];
+            });
+        });
+
+        return ret;
     }
 
     public static BitmapSource FromByteArray(
