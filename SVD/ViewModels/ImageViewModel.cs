@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+﻿using MathNet.Numerics.LinearAlgebra;
+using Microsoft.Win32;
 using Prism.Commands;
 using Prism.Mvvm;
 using SVD.Helpers;
@@ -20,11 +21,6 @@ internal class ImageViewModel : BindableBase
     /// Asks the user to load the image.
     /// </summary>
     public ICommand LoadImageComm { get; }
-
-    /// <summary>
-    /// Saves the currently loaded image to a file.
-    /// </summary>
-    public ICommand SaveImageComm { get; }
 
     /// <summary>
     /// Compresses the loaded image and displays the result.
@@ -82,6 +78,7 @@ internal class ImageViewModel : BindableBase
         {
             currentImageSource = value;
             RaisePropertyChanged();
+            Ratio = 100;
         }
     }
 
@@ -112,17 +109,6 @@ internal class ImageViewModel : BindableBase
     /// <c>Window</c> used as owner for the <c>OpenFileDialog</c>.
     /// </summary>
     public Window? Owner { get; set; } = null;
-
-    private void Test()
-    {
-        var matrix = new double[,]
-        {
-            {1,0,0,0,2,},
-            {0,0,3,0,0,},
-            {0,0,0,0,0,},
-            {0,2,0,0,0,},
-        };
-    }
 
     /// <summary>
     /// Creates new <c>BitMapSource</c> from bytes. Uses existing <c>CurrentImageSource</c> for parameters.
@@ -162,17 +148,36 @@ internal class ImageViewModel : BindableBase
                 aSVD = Task.Run(a.ToDoubleSVD),
             };
 
-            await tasksSVD.rSVD;
-            await tasksSVD.gSVD;
-            await tasksSVD.bSVD;
-            await tasksSVD.aSVD;
+            var svd = new
+            {
+                r = await tasksSVD.rSVD,
+                g = await tasksSVD.gSVD,
+                b = await tasksSVD.bSVD,
+                a = await tasksSVD.aSVD,
+            };
+
+            int k = Math.Max((int)(svd.a.W.Diagonal().Count * (Ratio / (double)100)), 1);
+
+            // Resizes the matrices in order to compress the image.
+            static (Matrix<double> U, Matrix<double> W, Matrix<double> VT) resize((Matrix<double> U, Matrix<double> W, Matrix<double> VT) tupleSVD, int k)
+            {
+                return (tupleSVD.U.Resize(tupleSVD.U.RowCount, k), tupleSVD.W.Resize(k, k), tupleSVD.VT.Resize(k, tupleSVD.VT.ColumnCount));
+            }
+
+            var resizedSvd = new
+            {
+                r = resize(svd.r, k),
+                g = resize(svd.g, k),
+                b = resize(svd.b, k),
+                a = resize(svd.a, k),
+            };
 
             var tasksCompose = new
             {
-                rComp = Task.Run(() => ArrayHelper.ComposeSVD(tasksSVD.rSVD.Result)),
-                gComp = Task.Run(() => ArrayHelper.ComposeSVD(tasksSVD.gSVD.Result)),
-                bComp = Task.Run(() => ArrayHelper.ComposeSVD(tasksSVD.bSVD.Result)),
-                aComp = Task.Run(() => ArrayHelper.ComposeSVD(tasksSVD.aSVD.Result)),
+                rComp = Task.Run(() => ArrayHelper.ComposeSVD(resizedSvd.r)),
+                gComp = Task.Run(() => ArrayHelper.ComposeSVD(resizedSvd.g)),
+                bComp = Task.Run(() => ArrayHelper.ComposeSVD(resizedSvd.b)),
+                aComp = Task.Run(() => ArrayHelper.ComposeSVD(resizedSvd.a)),
             };
 
             await tasksCompose.rComp;
@@ -181,23 +186,7 @@ internal class ImageViewModel : BindableBase
             await tasksCompose.aComp;
 
             var rgbaResult = (tasksCompose.rComp.Result, tasksCompose.gComp.Result, tasksCompose.bComp.Result, tasksCompose.aComp.Result);
-            /*
-            // TEST: INVERT IMAGE
-            static void test(byte[,] bytes)
-            {
-                for(int i = 0; i < bytes.GetLength(0); i++)
-                {
-                    for(int j = 0;  j < bytes.GetLength(1); j++)
-                    {
-                        bytes[i,j] = (byte)~bytes[i,j];
-                    }
-                }
-            }
-            test(rgbaResult.Item1);
-            test(rgbaResult.Item2);
-            test(rgbaResult.Item3);
-            // /TEST
-            */
+
             var retBytes = ImageSrcHelper.RGBAArraysToByte(rgbaResult);
             SetNewImageSource(retBytes);
         }
@@ -226,33 +215,16 @@ internal class ImageViewModel : BindableBase
         });
 
         var canOperateOnImg = () => CurrentImageSource != null;
-        var saveImageComm = new DelegateCommand(() =>
-        {
-            SaveFileDialog sfd = new()
-            {
-                Filter = $"{AppResources.IMAGES}|*.BMP;*.JPG;*.GIF,*.TIFF,*.PNG,*.EXIF|{AppResources.ALL_FILES}|*.*",
-                FilterIndex = 0,
-            };
-
-            if (sfd.ShowDialog(Owner) ?? false)
-            {
-                var stream = sfd.OpenFile();
-                stream.Write(CurrentImageSource!.ToByteArray());
-                stream.Close();
-            }
-        }, canOperateOnImg);
         var compressComm = new DelegateCommand(async () =>
         {
             await CompressImage(CurrentImageSource!);
         }, canOperateOnImg);
-        SaveImageComm = saveImageComm;
         CompressComm = compressComm;
 
         ImageChangedHandler = (object? sender, PropertyChangedEventArgs args) =>
         {
             if (string.Equals(args.PropertyName, nameof(CurrentImageSource)))
             {
-                saveImageComm.RaiseCanExecuteChanged();
                 compressComm.RaiseCanExecuteChanged();
                 SliderEnabled = canOperateOnImg();
             }

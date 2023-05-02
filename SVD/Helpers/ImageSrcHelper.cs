@@ -66,6 +66,11 @@ internal static partial class ImageSrcHelper
         return (retR, retG, retB, retA);
     }
 
+    /// <summary>
+    /// Takes 2D arrays of 4 channels, flattens them and concatenates to single array to be used in <c>FromByteArray</c>.
+    /// </summary>
+    /// <param name="input">Tuple of 4 RGBA 2D arrays.</param>
+    /// <returns>Flattened array.</returns>
     public static byte[] RGBAArraysToByte((byte[,], byte[,], byte[,], byte[,]) input)
     {
         var ret = new byte[input.Item1.Length * 4];
@@ -90,6 +95,17 @@ internal static partial class ImageSrcHelper
         return ret;
     }
 
+    /// <summary>
+    /// Creates a <c>BitMapSource</c> based on bytes of an image.
+    /// </summary>
+    /// <param name="array">Bytes to be used to create the <c>BitMap</c>.</param>
+    /// <param name="pixelWidth">Width of the returned <c>BitMap</c> in pixels.</param>
+    /// <param name="pixelHeight">Height of the returned <c>BitMap</c> in pixels.</param>
+    /// <param name="dpiX">DPI of the X axis.</param>
+    /// <param name="dpiY">DPI of the Y axis.</param>
+    /// <param name="format">Pixel format</param>
+    /// <param name="palette">Palette of the returned <c>BitMap</c>.</param>
+    /// <returns><c>BitMapSource</c> from <c>WritableBitMap</c> created from the <c>byte</c> array.</returns>
     public static BitmapSource FromByteArray(
         byte[] array,
         int pixelWidth,

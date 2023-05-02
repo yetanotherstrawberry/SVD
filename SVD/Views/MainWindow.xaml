@@ -31,7 +31,6 @@
                Margin="10" />
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Stretch">
             <Button Content="{x:Static resx:AppResources.LOAD_IMAGE}" Command="{Binding LoadImageComm}" />
-            <Button Content="{x:Static resx:AppResources.SAVE_IMAGE}" Command="{Binding SaveImageComm}" />
             <Button Content="{x:Static resx:AppResources.COMPRESS}" Command="{Binding CompressComm}" />
             <Slider Minimum="1" Maximum="100" Value="{Binding Ratio}" Width="100" VerticalAlignment="Center" IsEnabled="{Binding SliderEnabled}" />
         </StackPanel>
