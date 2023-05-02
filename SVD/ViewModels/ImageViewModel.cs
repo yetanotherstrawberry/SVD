@@ -1,5 +1,4 @@
-﻿using MathNet.Numerics.LinearAlgebra;
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using Prism.Commands;
 using Prism.Mvvm;
 using SVD.Helpers;
@@ -95,13 +94,23 @@ internal class ImageViewModel : BindableBase
     /// </summary>
     public Window? Owner { get; set; } = null;
 
-    /// <summary>
-    /// Performs image compression.
-    /// </summary>
-    private void CompressImage()
+    private void Test()
     {
-        var bytes = CurrentImageSource!.ToByteArray();
+        var matrix = new double[,]
+        {
+            {1,0,0,0,2,},
+            {0,0,3,0,0,},
+            {0,0,0,0,0,},
+            {0,2,0,0,0,},
+        };
+    }
 
+    /// <summary>
+    /// Creates new <c>BitMapSource</c> from bytes. Uses existing <c>CurrentImageSource</c> for parameters.
+    /// </summary>
+    /// <param name="bytes">Bytes of the image.</param>
+    private void SetNewImageSource(byte[] bytes)
+    {
         CurrentImageSource = ImageSrcHelper.FromByteArray(
             bytes,
             CurrentImageSource!.PixelWidth,
@@ -110,17 +119,23 @@ internal class ImageViewModel : BindableBase
             CurrentImageSource.DpiY,
             CurrentImageSource.Format,
             CurrentImageSource.Palette);
-        var matrix = new double[,]
-        {
-                {1,0,0,0,2,},
-                {0,0,3,0,0,},
-                {0,0,0,0,0,},
-                {0,2,0,0,0,},
-        };
-        var mat = Matrix<double>.Build.DenseOfArray(matrix);
-        var svd = mat.Svd();
-        var ret = svd.U * svd.W * svd.VT;
-        (var r, var g, var b, var a) = CurrentImageSource.To2DRGBAArrays();
+    }
+
+    /// <summary>
+    /// Performs image compression.
+    /// </summary>
+    private void CompressImage()
+    {
+        var bytes = CurrentImageSource!.ToByteArray();
+
+        (var r, var g, var b, var a) = CurrentImageSource!.To2DRGBAArrays();
+        (var rSVD, var gSVD, var bSVD, var aSVD) = (r.ToDoubleSVD(), g.ToDoubleSVD(), b.ToDoubleSVD(), a.ToDoubleSVD());
+
+        var rComp = ArrayHelper.ComposeSVD(rSVD);
+        var gComp = ArrayHelper.ComposeSVD(gSVD);
+        var bComp = ArrayHelper.ComposeSVD(bSVD);
+        var aComp = ArrayHelper.ComposeSVD(aSVD);
+
         Console.WriteLine();
     }
 
