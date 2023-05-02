@@ -7,6 +7,7 @@
         xmlns:resx="clr-namespace:SVD.Resources"
         mc:Ignorable="d"
         Title="{x:Static resx:AppResources.PROGRAM_TITLE}"
+        IsEnabled="{Binding IsEnabled}"
         Height="450" Width="800">
     <Window.DataContext>
         <vm:ImageViewModel />

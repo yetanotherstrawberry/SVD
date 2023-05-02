@@ -6,6 +6,7 @@ using SVD.Resources;
 using System;
 using System.ComponentModel;
 using System.Drawing;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
@@ -85,6 +86,24 @@ internal class ImageViewModel : BindableBase
     }
 
     /// <summary>
+    /// Field for <c>IsEnabled</c>.
+    /// </summary>
+    private bool isEnabled = true;
+
+    /// <summary>
+    /// Controls whether the program is performing an async operation and UI should be disabled.
+    /// </summary>
+    public bool IsEnabled
+    {
+        get => isEnabled;
+        set
+        {
+            isEnabled = value;
+            RaisePropertyChanged();
+        }
+    }
+
+    /// <summary>
     /// <c>EventHandler</c> that enables buttons after loading an image.
     /// </summary>
     private readonly PropertyChangedEventHandler ImageChangedHandler;
@@ -122,21 +141,49 @@ internal class ImageViewModel : BindableBase
     }
 
     /// <summary>
-    /// Performs image compression.
+    /// Performs image compression. Disables the UI during operation.
     /// </summary>
-    private void CompressImage()
+    private async Task CompressImage(BitmapSource bitmapSrc)
     {
-        var bytes = CurrentImageSource!.ToByteArray();
+        try
+        {
+            IsEnabled = false;
 
-        (var r, var g, var b, var a) = CurrentImageSource!.To2DRGBAArrays();
-        (var rSVD, var gSVD, var bSVD, var aSVD) = (r.ToDoubleSVD(), g.ToDoubleSVD(), b.ToDoubleSVD(), a.ToDoubleSVD());
+            var bytes = bitmapSrc.ToByteArray();
+            var pixelHeight = bitmapSrc.PixelHeight;
+            var pixelWidth = bitmapSrc.PixelWidth;
+            (var r, var g, var b, var a) = await Task.Run(() => ImageSrcHelper.ByteTo2DRGBAArrays(bytes, pixelHeight, pixelWidth));
 
-        var rComp = ArrayHelper.ComposeSVD(rSVD);
-        var gComp = ArrayHelper.ComposeSVD(gSVD);
-        var bComp = ArrayHelper.ComposeSVD(bSVD);
-        var aComp = ArrayHelper.ComposeSVD(aSVD);
+            var tasksSVD = new
+            {
+                rSVD = Task.Run(r.ToDoubleSVD),
+                gSVD = Task.Run(g.ToDoubleSVD),
+                bSVD = Task.Run(b.ToDoubleSVD),
+                aSVD = Task.Run(a.ToDoubleSVD),
+            };
 
-        Console.WriteLine();
+            await tasksSVD.rSVD;
+            await tasksSVD.gSVD;
+            await tasksSVD.bSVD;
+            await tasksSVD.aSVD;
+
+            var tasksCompose = new
+            {
+                rComp = Task.Run(() => ArrayHelper.ComposeSVD(tasksSVD.rSVD.Result)),
+                gComp = Task.Run(() => ArrayHelper.ComposeSVD(tasksSVD.gSVD.Result)),
+                bComp = Task.Run(() => ArrayHelper.ComposeSVD(tasksSVD.bSVD.Result)),
+                aComp = Task.Run(() => ArrayHelper.ComposeSVD(tasksSVD.aSVD.Result)),
+            };
+
+            await tasksCompose.rComp;
+            await tasksCompose.gComp;
+            await tasksCompose.bComp;
+            await tasksCompose.aComp;
+        }
+        finally
+        {
+            IsEnabled = true;
+        }
     }
 
     public ImageViewModel() : base()
@@ -173,7 +220,10 @@ internal class ImageViewModel : BindableBase
                 stream.Close();
             }
         }, canOperateOnImg);
-        var compressComm = new DelegateCommand(CompressImage, canOperateOnImg);
+        var compressComm = new DelegateCommand(async () =>
+        {
+            await CompressImage(CurrentImageSource!);
+        }, canOperateOnImg);
         SaveImageComm = saveImageComm;
         CompressComm = compressComm;
 

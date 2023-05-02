@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -44,24 +45,23 @@ internal static partial class ImageSrcHelper
         return ret;
     }
 
-    public static (byte[,], byte[,], byte[,], byte[,]) To2DRGBAArrays(this BitmapSource bitmapSrc)
+    public static (byte[,], byte[,], byte[,], byte[,]) ByteTo2DRGBAArrays(byte[] data, int pixelHeight, int pixelWidth)
     {
-        var data = bitmapSrc.ToByteArray();
-        var retR = new byte[bitmapSrc.PixelHeight, bitmapSrc.PixelWidth];
-        var retG = new byte[bitmapSrc.PixelHeight, bitmapSrc.PixelWidth];
-        var retB = new byte[bitmapSrc.PixelHeight, bitmapSrc.PixelWidth];
-        var retA = new byte[bitmapSrc.PixelHeight, bitmapSrc.PixelWidth];
+        var retR = new byte[pixelHeight, pixelWidth];
+        var retG = new byte[pixelHeight, pixelWidth];
+        var retB = new byte[pixelHeight, pixelWidth];
+        var retA = new byte[pixelHeight, pixelWidth];
 
-        for (int i = 0; i < bitmapSrc.PixelHeight; i++)
+        Parallel.For(0, pixelHeight, i =>
         {
-            for (int j = 0; j < bitmapSrc.PixelWidth * 4; j += 4)
+            Parallel.For(0, pixelWidth, j =>
             {
-                retB[i, j / 4] = data[i * bitmapSrc.PixelHeight + j];
-                retG[i, j / 4] = data[i * bitmapSrc.PixelHeight + j + 1];
-                retR[i, j / 4] = data[i * bitmapSrc.PixelHeight + j + 2];
-                retA[i, j / 4] = data[i * bitmapSrc.PixelHeight + j + 3];
-            };
-        }
+                retB[i, j] = data[i * pixelHeight + j * 4];
+                retG[i, j] = data[i * pixelHeight + j * 4 + 1];
+                retR[i, j] = data[i * pixelHeight + j * 4 + 2];
+                retA[i, j] = data[i * pixelHeight + j * 4 + 3];
+            });
+        });
 
         return (retR, retG, retB, retA);
     }
