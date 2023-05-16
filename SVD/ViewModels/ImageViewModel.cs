@@ -156,20 +156,20 @@ internal class ImageViewModel : BindableBase
                 a = await tasksSVD.aSVD,
             };
 
-            int k = Math.Max((int)(svd.a.W.Diagonal().Count * (Ratio / (double)100)), 1);
+            var diagLen = Math.Max((int)(svd.a.W.Diagonal().Count * (Ratio / (double)100)), 1);
 
             // Resizes the matrices in order to compress the image.
-            static (Matrix<double> U, Matrix<double> W, Matrix<double> VT) resize((Matrix<double> U, Matrix<double> W, Matrix<double> VT) tupleSVD, int k)
+            static (Matrix<double> U, Matrix<double> W, Matrix<double> VT) resize((Matrix<double> U, Matrix<double> W, Matrix<double> VT) tupleSVD, int diagLen)
             {
-                return (tupleSVD.U.Resize(tupleSVD.U.RowCount, k), tupleSVD.W.Resize(k, k), tupleSVD.VT.Resize(k, tupleSVD.VT.ColumnCount));
+                return (tupleSVD.U.Resize(tupleSVD.U.RowCount, diagLen), tupleSVD.W.Resize(diagLen, diagLen), tupleSVD.VT.Resize(diagLen, tupleSVD.VT.ColumnCount));
             }
 
             var resizedSvd = new
             {
-                r = resize(svd.r, k),
-                g = resize(svd.g, k),
-                b = resize(svd.b, k),
-                a = resize(svd.a, k),
+                r = resize(svd.r, diagLen),
+                g = resize(svd.g, diagLen),
+                b = resize(svd.b, diagLen),
+                a = resize(svd.a, diagLen),
             };
 
             var tasksCompose = new
@@ -189,6 +189,9 @@ internal class ImageViewModel : BindableBase
 
             var retBytes = ImageSrcHelper.RGBAArraysToByte(rgbaResult);
             SetNewImageSource(retBytes);
+            var totalLen = (resizedSvd.a.U.RowCount * resizedSvd.a.U.ColumnCount + resizedSvd.a.VT.RowCount * resizedSvd.a.VT.ColumnCount + resizedSvd.a.W.Diagonal().Count) * 4;
+            var preLen = bytes.Length;
+            MessageBox.Show($"All done!\nBytes before compression: {preLen}\nBytes after compression: {totalLen}\nRatio: {(double)totalLen / preLen * 100}%");
         }
         finally
         {
