@@ -3,7 +3,6 @@ using Microsoft.Win32;
 using Prism.Commands;
 using Prism.Mvvm;
 using SVD.Helpers;
-using SVD.Resources;
 using System;
 using System.ComponentModel;
 using System.Drawing;
@@ -18,6 +17,11 @@ internal class ImageViewModel : BindableBase
 {
 
     /// <summary>
+    /// Default size (percentage from 1 to 100) of the singular values vector.
+    /// </summary>
+    private const int DefaultRatio = 70;
+
+    /// <summary>
     /// Asks the user to load the image.
     /// </summary>
     public ICommand LoadImageComm { get; }
@@ -30,7 +34,7 @@ internal class ImageViewModel : BindableBase
     /// <summary>
     /// Field for <c>Ratio</c>.
     /// </summary>
-    private int ratio = 100;
+    private int ratio = DefaultRatio;
 
     /// <summary>
     /// Compression (clamped between 1 and 100 inclusive) ratio set by the user. Notifies when value changed.
@@ -78,7 +82,7 @@ internal class ImageViewModel : BindableBase
         {
             currentImageSource = value;
             RaisePropertyChanged();
-            Ratio = 100;
+            Ratio = DefaultRatio;
         }
     }
 
@@ -205,8 +209,6 @@ internal class ImageViewModel : BindableBase
         {
             OpenFileDialog ofd = new()
             {
-                Filter = $"{AppResources.IMAGES}|*.BMP;*.JPG;*.GIF,*.TIFF,*.PNG,*.EXIF|{AppResources.ALL_FILES}|*.*",
-                FilterIndex = 0,
                 Multiselect = false,
             };
 

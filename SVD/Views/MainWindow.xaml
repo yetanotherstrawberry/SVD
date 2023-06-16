@@ -33,8 +33,7 @@
             <Button Content="{x:Static resx:AppResources.LOAD_IMAGE}" Command="{Binding LoadImageComm}" />
             <Button Content="{x:Static resx:AppResources.COMPRESS}" Command="{Binding CompressComm}" />
             <Slider Minimum="1" Maximum="100" Value="{Binding Ratio}" Width="100" VerticalAlignment="Center" IsEnabled="{Binding SliderEnabled}" />
-            <TextBlock Margin="10,0,0,0" Text="{Binding Ratio}" VerticalAlignment="Center" />
-            <TextBlock Text="%" VerticalAlignment="Center" />
+            <TextBlock Margin="10,0,0,0" Text="{Binding Ratio, StringFormat='{}{0} %'}" VerticalAlignment="Center" />
         </StackPanel>
     </Grid>
 </Window>
